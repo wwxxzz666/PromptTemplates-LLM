@@ -13,10 +13,9 @@ It is not the main entry point of the repository, but a supporting section for:
 - Chain-of-Thought Prompting
 - Tree of Thoughts
 - EmotionPrompt
-- the translated LangGPT paper and related figures
+- a translated prompt-design paper and related figures
 
 If you only want the working tool, go back to the main project entry:
 
 - [../README.md](/D:/study/提示词助手/langgpt-main/README.md)
 - [../PromptWorkbench.html](/D:/study/提示词助手/langgpt-main/PromptWorkbench.html)
-
