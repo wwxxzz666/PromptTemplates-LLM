@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt Workbench</title>
+  <style>
+    :root {
+      --bg: #12151a;
+      --bg2: #181d24;
+      --panel: #f4efe6;
+      --panel-2: #ebe3d7;
+      --ink: #14171d;
+      --muted: #596171;
+      --line: rgba(20, 23, 29, 0.12);
+      --teal: #1b8a8f;
+      --teal-2: #43b6ba;
+      --amber: #d08a2e;
+      --rose: #d86d6d;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+    }
+
+    body {
+      color: var(--ink);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", sans-serif;
+      background:
+        linear-gradient(135deg, rgba(27, 138, 143, 0.16), transparent 40%),
+        linear-gradient(315deg, rgba(208, 138, 46, 0.13), transparent 36%),
+        linear-gradient(180deg, #0f1216 0%, #161a20 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.95), transparent 110%);
+      opacity: 0.45;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .shell {
+      width: min(1480px, 100%);
+      min-height: calc(100vh - 40px);
+      margin: 0 auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      background: rgba(10, 12, 15, 0.5);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      color: #f5efe6;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-family: "Georgia", "Songti SC", serif;
+      font-size: 22px;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+
+    .brand p {
+      margin: 0;
+      color: rgba(245, 239, 230, 0.7);
+      font-size: 13px;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06);
+      color: #f5efe6;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.11);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--teal), var(--teal-2));
+      border-color: transparent;
+      color: #071114;
+      font-weight: 700;
+    }
+
+    .btn.primary:hover {
+      background: linear-gradient(135deg, #2aa0a5, #61c8cc);
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      min-height: calc(100vh - 120px);
+    }
+
+    .library {
+      background: rgba(12, 14, 18, 0.92);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 18px;
+      color: #f6f0e6;
+    }
+
+    .search {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .search input,
+    .search textarea,
+    .controls select,
+    .controls textarea,
+    .field input,
+    .field textarea {
+      width: 100%;
+      border: 1px solid rgba(20, 23, 29, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--ink);
+      padding: 11px 12px;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .search input:focus,
+    .search textarea:focus,
+    .controls select:focus,
+    .controls textarea:focus,
+    .field input:focus,
+    .field textarea:focus {
+      border-color: rgba(27, 138, 143, 0.55);
+      box-shadow: 0 0 0 3px rgba(27, 138, 143, 0.12);
+    }
+
+    .search input {
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    .section-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 10px;
+      color: rgba(246, 240, 230, 0.82);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .chip {
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(245, 239, 230, 0.86);
+      padding: 8px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+    }
+
+    .chip:hover {
+      transform: translateY(-1px);
+      border-color: rgba(67, 182, 186, 0.38);
+    }
+
+    .chip.active {
+      background: rgba(67, 182, 186, 0.18);
+      border-color: rgba(67, 182, 186, 0.48);
+      color: #ffffff;
+    }
+
+    .template-list {
+      display: grid;
+      gap: 10px;
+      max-height: calc(100vh - 280px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .template-card {
+      position: relative;
+      padding: 13px 13px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .template-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(67, 182, 186, 0.32);
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .template-card.active {
+      background: linear-gradient(180deg, rgba(67, 182, 186, 0.18), rgba(67, 182, 186, 0.08));
+      border-color: rgba(67, 182, 186, 0.42);
+    }
+
+    .template-card h3 {
+      margin: 0 24px 6px 0;
+      font-size: 15px;
+      line-height: 1.3;
+      color: #fff8f0;
+    }
+
+    .template-card p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.55;
+      color: rgba(246, 240, 230, 0.72);
+    }
+
+    .template-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(246, 240, 230, 0.55);
+    }
+
+    .star {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      border: 0;
+      background: transparent;
+      color: rgba(255, 246, 214, 0.72);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .star.active {
+      color: #f3c260;
+      text-shadow: 0 0 10px rgba(243, 194, 96, 0.22);
+    }
+
+    .workspace {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), transparent 20%),
+        linear-gradient(180deg, #f7f2e8 0%, #ede4d7 100%);
+      padding: 18px;
+    }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) 360px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(20, 23, 29, 0.1);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 18px 42px rgba(20, 23, 29, 0.08);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 16px;
+      border-bottom: 1px solid rgba(20, 23, 29, 0.08);
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-family: "Georgia", "Songti SC", serif;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .panel-header .sub {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .fields {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field label {
+      display: block;
+      margin: 0 0 7px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .field small {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .field textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .controls .field {
+      margin: 0;
+    }
+
+    .controls .field select {
+      min-width: 0;
+    }
+
+    .modifier-group {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px dashed rgba(20, 23, 29, 0.12);
+    }
+
+    .modifier-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .modifier {
+      border: 1px solid rgba(20, 23, 29, 0.14);
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--ink);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+    }
+
+    .modifier:hover {
+      transform: translateY(-1px);
+      border-color: rgba(27, 138, 143, 0.34);
+    }
+
+    .modifier.active {
+      background: rgba(27, 138, 143, 0.12);
+      border-color: rgba(27, 138, 143, 0.4);
+    }
+
+    .prompt-box {
+      display: grid;
+      gap: 12px;
+    }
+
+    .prompt-output {
+      width: 100%;
+      min-height: 420px;
+      border: 1px solid rgba(20, 23, 29, 0.12);
+      border-radius: 12px;
+      background: #0f1318;
+      color: #f4efe6;
+      padding: 16px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.75;
+      resize: vertical;
+      outline: none;
+      white-space: pre-wrap;
+    }
+
+    .prompt-output:focus {
+      box-shadow: 0 0 0 3px rgba(27, 138, 143, 0.12);
+      border-color: rgba(27, 138, 143, 0.48);
+    }
+
+    .side {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hint {
+      display: grid;
+      gap: 10px;
+    }
+
+    .hint-card {
+      padding: 14px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(27, 138, 143, 0.14), rgba(27, 138, 143, 0.04));
+      border: 1px solid rgba(27, 138, 143, 0.16);
+    }
+
+    .hint-card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    .hint-card p,
+    .hint-card li {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .hint-card ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .footer-line {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%) translateY(16px);
+      background: rgba(15, 19, 24, 0.95);
+      color: #f4efe6;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.24s ease, transform 0.24s ease;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.34);
+      z-index: 50;
+      max-width: min(92vw, 480px);
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 1200px) {
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      .library {
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .template-list {
+        max-height: 340px;
+      }
+
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 10px;
+      }
+
+      .shell {
+        border-radius: 14px;
+      }
+
+      .topbar {
+        padding: 14px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .library,
+      .workspace {
+        padding: 14px;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .prompt-output {
+        min-height: 360px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Prompt Workbench</h1>
+          <p>把日常和 AI 对话的模板，做成一个能直接打开就用的小工作台。</p>
+        </div>
+        <div class="top-actions">
+          <button class="btn" id="copyBtn">⧉ 复制提示词</button>
+          <button class="btn" id="saveBtn">★ 保存本地</button>
+          <button class="btn primary" id="resetBtn">↺ 重置</button>
+        </div>
+      </header>
+
+      <div class="main">
+        <aside class="library">
+          <div class="search">
+            <div class="section-label">
+              <span>模板库</span>
+              <span id="countLabel">0</span>
+            </div>
+            <input id="searchInput" type="search" placeholder="搜索：写作、学习、工作、生活..." />
+          </div>
+
+          <div class="chips" id="categoryChips"></div>
+
+          <div class="template-list" id="templateList"></div>
+        </aside>
+
+        <section class="workspace">
+          <div class="workspace-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2 id="templateTitle">请选择一个模板</h2>
+                  <p class="sub" id="templateSummary">点左侧模板后，就会在这里生成可直接给 AI 的提示词。</p>
+                </div>
+                <button class="btn" id="favoriteBtn" title="收藏当前模板">☆ 收藏</button>
+              </div>
+              <div class="panel-body">
+                <div class="fields" id="fieldList"></div>
+
+                <div class="controls">
+                  <div class="field">
+                    <label for="toneSelect">语气</label>
+                    <select id="toneSelect">
+                      <option value="自然、直接">自然、直接</option>
+                      <option value="温和、耐心">温和、耐心</option>
+                      <option value="专业、克制">专业、克制</option>
+                      <option value="像朋友一样">像朋友一样</option>
+                      <option value="简洁、干脆">简洁、干脆</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="lengthSelect">长度</label>
+                    <select id="lengthSelect">
+                      <option value="简短">简短</option>
+                      <option value="适中" selected>适中</option>
+                      <option value="详细">详细</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="formatSelect">输出方式</label>
+                    <select id="formatSelect">
+                      <option value="清单">清单</option>
+                      <option value="步骤">步骤</option>
+                      <option value="表格">表格</option>
+                      <option value="先结论后说明">先结论后说明</option>
+                      <option value="对比分析">对比分析</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="modifier-group">
+                  <div class="section-label" style="color: var(--muted); margin-bottom: 0;">
+                    <span>附加要求</span>
+                    <span>点一下就加到提示词里</span>
+                  </div>
+                  <div class="modifier-row" id="modifierRow"></div>
+                </div>
+
+                <div class="modifier-group">
+                  <div class="section-label" style="color: var(--muted); margin-bottom: 0;">
+                    <span>补充背景</span>
+                    <span>可选</span>
+                  </div>
+                  <textarea id="contextNote" rows="5" placeholder="比如：我现在的背景、你要面对的对象、我想要的语气、不能做的事..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="side">
+              <div class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h2>生成结果</h2>
+                    <p class="sub">复制这一段，直接贴给 AI 就能用。</p>
+                  </div>
+                </div>
+                <div class="panel-body">
+                  <textarea id="promptOutput" class="prompt-output" readonly spellcheck="false"></textarea>
+                  <div class="footer-line" id="statusLine">先从左边选一个模板。</div>
+                </div>
+              </div>
+
+              <div class="hint">
+                <div class="hint-card">
+                  <h3>怎么用</h3>
+                  <ul>
+                    <li>先选一个场景模板。</li>
+                    <li>把字段补完整，再选语气和输出方式。</li>
+                    <li>需要更像你自己说话，就写进补充背景里。</li>
+                    <li>最后直接复制生成结果。</li>
+                  </ul>
+                </div>
+                <div class="hint-card">
+                  <h3>适合你现在的方向</h3>
+                  <p>这个版本偏“日常对话模板库”。如果你要，我下一步可以再给它加上“收藏夹”“自定义模板”“历史记录”和“分享链接”。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const templates = [
+      {
+        id: "daily-helper",
+        group: "聊天",
+        title: "通用日常助手",
+        summary: "适合不知道该用哪种方式提问时先用它。",
+        fields: [
+          { key: "task", label: "这次想做什么", type: "text", placeholder: "解释概念 / 写作 / 总结 / 规划 / 对比 / 代码 / 搜索 / 复盘", value: "解释概念 / 写作 / 总结 / 规划 / 对比 / 代码 / 搜索 / 复盘" }
+        ],
+        prompt: `你是我的日常 AI 助手。请先判断我这次想要的是{{task}}。
+如果信息不够，请先问我最多 3 个关键问题。
+如果信息够了，请直接给我结果，并尽量用清单、步骤、表格或对比的方式输出。
+请优先给出最实用的答案，不要空泛。`
+      },
+      {
+        id: "explain-concept",
+        group: "学习",
+        title: "概念解释器",
+        summary: "把复杂概念翻成好懂的话。",
+        fields: [
+          { key: "concept", label: "要解释的概念", type: "text", placeholder: "例如：注意力机制 / 杠杆 / 现金流", value: "注意力机制" }
+        ],
+        prompt: `请用“我能听懂”的方式解释{{concept}}。
+要求：
+1. 先给一句话结论
+2. 再用生活例子解释
+3. 再讲容易混淆的点
+4. 最后给我一个 3 行以内的记忆版总结
+如果有专业术语，请顺手翻成大白话。`
+      },
+      {
+        id: "study-coach",
+        group: "学习",
+        title: "学习辅导",
+        summary: "适合上课、刷题、自学时用。",
+        fields: [
+          { key: "topic", label: "学习主题", type: "text", placeholder: "例如：Python 函数 / 世界历史 / 微积分", value: "Python 函数" },
+          { key: "level", label: "我的水平", type: "text", placeholder: "例如：入门 / 略懂 / 想提升到能实战", value: "入门" }
+        ],
+        prompt: `我在学{{topic}}，目前水平是{{level}}，请你当我的耐心老师。
+请按这个顺序帮我：
+1. 先判断我现在大概处在什么水平
+2. 再用循序渐进的方式讲清楚
+3. 每讲完一个小点，给我一个小练习
+4. 最后出 3 道由易到难的巩固题
+如果我回答错了，请直接指出问题并帮我纠正。`
+      },
+      {
+        id: "polish-writing",
+        group: "写作",
+        title: "写作润色",
+        summary: "润色文案、消息、邮件、发言稿都能用。",
+        fields: [
+          { key: "origin", label: "原文", type: "textarea", placeholder: "把要润色的内容贴这里", value: "把要润色的内容贴这里" },
+          { key: "style", label: "想要的风格", type: "text", placeholder: "例如：口语 / 正式 / 简洁 / 有感染力", value: "口语、自然、顺一点" }
+        ],
+        prompt: `请帮我润色下面这段文字：
+{{origin}}
+
+目标：
+1. 保留我的原意
+2. 让表达更自然、更顺
+3. 去掉重复和废话
+4. 按我想要的风格调整：{{style}}
+如果你觉得有更好的结构，也可以顺手帮我重排。`
+      },
+      {
+        id: "summarize",
+        group: "工作",
+        title: "总结提炼",
+        summary: "把长内容提成重点，适合会议、文章、材料。",
+        fields: [
+          { key: "content", label: "需要总结的内容", type: "textarea", placeholder: "把原文贴这里", value: "把原文贴这里" }
+        ],
+        prompt: `请帮我总结下面这段内容：
+{{content}}
+
+请输出这 4 部分：
+1. 核心结论
+2. 关键要点
+3. 容易忽略的细节
+4. 如果我要行动，下一步该做什么
+如果内容太长，请优先提炼出最重要的 20%。`
+      },
+      {
+        id: "brainstorm",
+        group: "创作",
+        title: "头脑风暴",
+        summary: "用于起点子、找角度、拆方案。",
+        fields: [
+          { key: "topic", label: "主题", type: "text", placeholder: "例如：小红书选题 / 产品功能 / 活动方案", value: "产品活动方案" }
+        ],
+        prompt: `我想围绕{{topic}}做头脑风暴。
+请不要急着下结论，先给我 10 个不同方向的想法。
+要求：
+1. 尽量覆盖不同角度
+2. 不要只给常规答案
+3. 每个想法用 1 句话说明
+4. 最后帮我挑出最值得继续展开的 3 个`
+      },
+      {
+        id: "decision",
+        group: "生活",
+        title: "决策比较",
+        summary: "适合二选一、三选一、纠结的时候。",
+        fields: [
+          { key: "options", label: "选项", type: "textarea", placeholder: "每个选项一行", value: "选项 A\n选项 B\n选项 C" }
+        ],
+        prompt: `请帮我比较下面这些选项：
+{{options}}
+
+请按以下维度分析：
+1. 适合什么情况
+2. 优点
+3. 缺点
+4. 成本/收益
+5. 我这种情况更适合哪个
+最后请直接给出你的建议，不要只列信息。`
+      },
+      {
+        id: "plan",
+        group: "工作",
+        title: "计划安排",
+        summary: "拆目标、列步骤、安排时间。",
+        fields: [
+          { key: "goal", label: "目标", type: "text", placeholder: "例如：准备面试 / 学会剪辑 / 完成项目", value: "完成一个小项目" },
+          { key: "deadline", label: "时间", type: "text", placeholder: "例如：两周 / 一个月", value: "两周" }
+        ],
+        prompt: `我想在{{deadline}}内完成{{goal}}，请你帮我做一个现实可执行的计划。
+请按下面格式输出：
+1. 目标拆解
+2. 每一步要做什么
+3. 时间安排
+4. 可能遇到的阻碍
+5. 备用方案
+要求计划要具体，不要空喊口号。`
+      },
+      {
+        id: "meeting-notes",
+        group: "工作",
+        title: "会议纪要",
+        summary: "把散乱记录整理成能执行的纪要。",
+        fields: [
+          { key: "notes", label: "会议记录", type: "textarea", placeholder: "把聊天记录或会议记录贴这里", value: "把聊天记录或会议记录贴这里" }
+        ],
+        prompt: `请把下面这段聊天记录/会议记录整理成可执行纪要：
+{{notes}}
+
+请输出：
+1. 主题
+2. 主要结论
+3. 待办事项
+4. 负责人
+5. 截止时间
+6. 需要继续确认的问题
+如果信息不完整，请帮我标出来。`
+      },
+      {
+        id: "code-helper",
+        group: "工作",
+        title: "代码助手",
+        summary: "排查 bug、讲代码、提改法都能用。",
+        fields: [
+          { key: "stack", label: "语言/项目", type: "text", placeholder: "例如：Python / React / Vue / Next.js", value: "JavaScript / 网页项目" },
+          { key: "issue", label: "问题描述", type: "textarea", placeholder: "把报错、代码或需求贴这里", value: "把报错、代码或需求贴这里" }
+        ],
+        prompt: `请你当我的代码助手，帮助我处理{{stack}}里的问题。
+问题如下：
+{{issue}}
+
+请先判断这是：
+1. 排查 bug
+2. 重构
+3. 优化性能
+4. 补功能
+5. 解释代码
+
+然后直接给我：
+1. 问题原因
+2. 修改建议
+3. 参考代码
+4. 需要注意的副作用
+如果你需要更多上下文，先问我最关键的问题。`
+      },
+      {
+        id: "translate",
+        group: "学习",
+        title: "翻译改写",
+        summary: "适合中英互译，也适合改成更自然的表达。",
+        fields: [
+          { key: "targetLang", label: "目标语言", type: "text", placeholder: "例如：英文 / 中文 / 日文", value: "英文" },
+          { key: "sourceText", label: "原文", type: "textarea", placeholder: "把原文贴这里", value: "把原文贴这里" }
+        ],
+        prompt: `请把下面这段内容翻译成{{targetLang}}：
+{{sourceText}}
+
+要求：
+1. 保留原意
+2. 让语气自然
+3. 如果是口语，翻得像真人会说的话
+4. 如果是正式内容，保持专业
+如果有歧义，请告诉我你是怎么处理的。`
+      },
+      {
+        id: "travel",
+        group: "生活",
+        title: "旅行规划",
+        summary: "做行程、预算和备选方案。",
+        fields: [
+          { key: "place", label: "目的地", type: "text", placeholder: "例如：杭州 / 日本东京 / 云南", value: "杭州" },
+          { key: "days", label: "天数", type: "text", placeholder: "例如：2 天 / 5 天", value: "3 天" },
+          { key: "budget", label: "预算", type: "text", placeholder: "例如：3000 元", value: "3000 元" }
+        ],
+        prompt: `请帮我规划一次{{place}}的{{days}}游玩。
+我的预算是{{budget}}，偏好是 <美食/博物馆/自然/轻松/亲子/拍照>。
+请给我：
+1. 每天行程
+2. 交通建议
+3. 餐饮建议
+4. 预算分配
+5. 备选方案
+6. 行前提醒
+请尽量做得省心一点，不要排得太赶。`
+      },
+      {
+        id: "career",
+        group: "工作",
+        title: "求职简历",
+        summary: "优化简历、自我介绍和面试回答。",
+        fields: [
+          { key: "background", label: "我的背景", type: "textarea", placeholder: "学历、经历、擅长点、成绩都可以写", value: "学历、经历、擅长点、成绩都可以写" },
+          { key: "target", label: "目标岗位", type: "text", placeholder: "例如：产品经理 / 前端工程师 / 运营", value: "目标岗位" }
+        ],
+        prompt: `请你当我的求职助手，帮我优化{{target}}相关的简历、自我介绍或面试回答。
+我的背景是：
+{{background}}
+
+请输出：
+1. 可以直接使用的版本
+2. 哪些地方需要改得更有竞争力
+3. 哪些表达太空泛，需要换成结果导向的说法
+4. 如果是面试题，请给我更自然的回答`
+      },
+      {
+        id: "emotional-support",
+        group: "聊天",
+        title: "情绪支持",
+        summary: "适合焦虑、低落、烦躁、迷茫的时候。",
+        fields: [
+          { key: "state", label: "现在的感受", type: "text", placeholder: "例如：焦虑 / 低落 / 烦躁 / 迷茫", value: "焦虑" },
+          { key: "story", label: "发生了什么", type: "textarea", placeholder: "简单说说发生的事", value: "简单说说发生的事" }
+        ],
+        prompt: `我现在有点{{state}}，先不要急着给建议。
+发生了这些事：
+{{story}}
+
+请先认真听我说，帮我把感受整理清楚。
+然后再给我：
+1. 你理解到的我的状态
+2. 可能的原因
+3. 我现在能做的 1 到 3 个小步骤
+4. 一句不空洞、能让我稳一点的话
+请温和一点，但也真实一点。`
+      },
+      {
+        id: "shopping",
+        group: "生活",
+        title: "购物对比",
+        summary: "买东西前先比一圈，不容易踩坑。",
+        fields: [
+          { key: "item", label: "要买什么", type: "text", placeholder: "例如：笔记本电脑 / 咖啡机 / 耳机", value: "笔记本电脑" },
+          { key: "needs", label: "需求", type: "textarea", placeholder: "预算、场景、使用习惯", value: "预算 5000 左右，日常办公和轻度剪辑" }
+        ],
+        prompt: `我想买{{item}}，需求是：
+{{needs}}
+
+请帮我比较不同选择，并告诉我：
+1. 适合我的关键标准
+2. 推荐的选购思路
+3. 需要避开的坑
+4. 如果预算更高/更低，怎么选更划算
+最后请直接给我一个清晰建议。`
+      },
+      {
+        id: "followup",
+        group: "聊天",
+        title: "万能追问",
+        summary: "当你想让 AI 继续往下推，不停在表面。",
+        fields: [
+          { key: "topic", label: "当前主题", type: "text", placeholder: "例如：一段结论 / 一个方案 / 一条消息", value: "当前内容" }
+        ],
+        prompt: `请继续围绕{{topic}}往下帮我想，不要停在表面。
+如果你觉得信息不够，就先问我最关键的 1 到 3 个问题。
+如果你能直接推进，请直接给我下一步最有价值的内容。
+我更想要能落地的答案，不想只听概念。`
+      },
+      {
+        id: "reply-message",
+        group: "聊天",
+        title: "社交回复",
+        summary: "回消息、发微信、回邮件前先用它。",
+        fields: [
+          { key: "message", label: "对方发来的内容", type: "textarea", placeholder: "把对方的消息贴这里", value: "把对方的消息贴这里" }
+        ],
+        prompt: `请帮我回复下面这段消息：
+{{message}}
+
+要求：
+1. 语气自然，不要太官方
+2. 给我 3 个版本：礼貌版、轻松版、直接版
+3. 如果有可能引起误会，请顺手提醒我`
+      },
+      {
+        id: "paper-reading",
+        group: "学习",
+        title: "论文精读",
+        summary: "读论文、抓方法、找贡献、看局限。",
+        fields: [
+          { key: "paper", label: "论文内容", type: "textarea", placeholder: "贴摘要、全文片段或链接要点", value: "贴摘要、全文片段或链接要点" }
+        ],
+        prompt: `请帮我精读下面这篇论文内容：
+{{paper}}
+
+请输出：
+1. 这篇论文想解决什么问题
+2. 核心方法是什么
+3. 主要贡献是什么
+4. 和常见方法相比的不同点
+5. 可能的局限
+6. 适合我用来做什么
+如果能举例说明，请顺手举例。`
+      },
+      {
+        id: "ppt-outline",
+        group: "工作",
+        title: "PPT 大纲",
+        summary: "把主题拆成一页页更容易做的结构。",
+        fields: [
+          { key: "topic", label: "主题", type: "text", placeholder: "例如：季度复盘 / 产品介绍 / 项目汇报", value: "项目汇报" }
+        ],
+        prompt: `请帮我为{{topic}}设计一个 PPT 大纲。
+请输出：
+1. 封面标题建议
+2. 每一页的主题
+3. 每页要讲的关键点
+4. 哪些页适合放图表或案例
+5. 哪些内容最好删掉
+请让结构适合拿去直接做幻灯片。`
+      },
+      {
+        id: "interview",
+        group: "工作",
+        title: "面试模拟",
+        summary: "把自己当作候选人，先练答题。",
+        fields: [
+          { key: "role", label: "面试岗位", type: "text", placeholder: "例如：产品经理 / 运营 / 前端工程师", value: "产品经理" },
+          { key: "question", label: "面试题目", type: "textarea", placeholder: "把题目贴这里", value: "请做一个自我介绍" }
+        ],
+        prompt: `请你扮演{{role}}面试官，围绕这个问题来练我：
+{{question}}
+
+请按下面方式帮助我：
+1. 先告诉我这道题考察什么
+2. 给我一个高质量回答示范
+3. 指出常见坑
+4. 再追问我 3 个延伸问题
+如果我回答不够好，请直接帮我改。`
+      },
+      {
+        id: "review",
+        group: "工作",
+        title: "复盘总结",
+        summary: "适合项目、习惯、学习、工作复盘。",
+        fields: [
+          { key: "event", label: "复盘对象", type: "text", placeholder: "例如：这周工作 / 一次项目 / 一场活动", value: "这周工作" },
+          { key: "log", label: "过程记录", type: "textarea", placeholder: "把过程写进来", value: "把过程写进来" }
+        ],
+        prompt: `请帮我复盘{{event}}。
+过程记录如下：
+{{log}}
+
+请按以下结构输出：
+1. 发生了什么
+2. 做对了什么
+3. 哪里卡住了
+4. 根因分析
+5. 下一次要怎么改
+6. 最值得保留的一个动作
+请不要只给鼓励，要给我实际能改的点。`
+      }
+    ];
+
+    const modifierOptions = [
+      "先给结论",
+      "给我示例",
+      "输出成表格",
+      "如果信息不够先问我",
+      "更简洁一点",
+      "标出风险点",
+      "给我可直接复制的版本"
+    ];
+
+    const els = {
+      templateList: document.getElementById("templateList"),
+      categoryChips: document.getElementById("categoryChips"),
+      countLabel: document.getElementById("countLabel"),
+      searchInput: document.getElementById("searchInput"),
+      fieldList: document.getElementById("fieldList"),
+      promptOutput: document.getElementById("promptOutput"),
+      templateTitle: document.getElementById("templateTitle"),
+      templateSummary: document.getElementById("templateSummary"),
+      toneSelect: document.getElementById("toneSelect"),
+      lengthSelect: document.getElementById("lengthSelect"),
+      formatSelect: document.getElementById("formatSelect"),
+      modifierRow: document.getElementById("modifierRow"),
+      contextNote: document.getElementById("contextNote"),
+      favoriteBtn: document.getElementById("favoriteBtn"),
+      copyBtn: document.getElementById("copyBtn"),
+      saveBtn: document.getElementById("saveBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      statusLine: document.getElementById("statusLine"),
+      toast: document.getElementById("toast")
+    };
+
+    const storageKey = "prompt-workbench-state-v1";
+    const favoritesKey = "prompt-workbench-favorites-v1";
+
+    const state = {
+      selectedId: templates[0].id,
+      category: "全部",
+      search: "",
+      fields: {},
+      tone: "自然、直接",
+      length: "适中",
+      format: "清单",
+      modifiers: new Set(),
+      contextNote: "",
+      favorites: new Set()
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        const favRaw = localStorage.getItem(favoritesKey);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          state.selectedId = saved.selectedId || state.selectedId;
+          state.category = saved.category || state.category;
+          state.search = saved.search || "";
+          state.fields = saved.fields || {};
+          state.tone = saved.tone || state.tone;
+          state.length = saved.length || state.length;
+          state.format = saved.format || state.format;
+          state.modifiers = new Set(saved.modifiers || []);
+          state.contextNote = saved.contextNote || "";
+        }
+        if (favRaw) {
+          state.favorites = new Set(JSON.parse(favRaw));
+        }
+      } catch (err) {
+        console.warn("Failed to load saved state", err);
+      }
+    }
+
+    function persistState() {
+      const payload = {
+        selectedId: state.selectedId,
+        category: state.category,
+        search: state.search,
+        fields: state.fields,
+        tone: state.tone,
+        length: state.length,
+        format: state.format,
+        modifiers: Array.from(state.modifiers),
+        contextNote: state.contextNote
+      };
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+      localStorage.setItem(favoritesKey, JSON.stringify(Array.from(state.favorites)));
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function substitute(template, values) {
+      return template.replace(/\{\{(\w+)\}\}/g, (_, key) => values[key] ?? "");
+    }
+
+    function getSelectedTemplate() {
+      return templates.find(t => t.id === state.selectedId) || templates[0];
+    }
+
+    function buildFieldValues(template) {
+      const values = {};
+      template.fields.forEach(field => {
+        const saved = state.fields[template.id]?.[field.key];
+        values[field.key] = saved ?? field.value ?? "";
+      });
+      return values;
+    }
+
+    function updateStateField(templateId, key, value) {
+      if (!state.fields[templateId]) state.fields[templateId] = {};
+      state.fields[templateId][key] = value;
+      persistState();
+      renderPrompt();
+    }
+
+    function buildPrompt(template) {
+      const fieldValues = buildFieldValues(template);
+      let output = substitute(template.prompt, fieldValues).trim();
+      const extras = [];
+
+      if (state.tone || state.length || state.format) {
+        extras.push(`- 语气：${state.tone}`);
+        extras.push(`- 长度：${state.length}`);
+        extras.push(`- 输出方式：${state.format}`);
+      }
+
+      if (state.modifiers.size > 0) {
+        state.modifiers.forEach(item => extras.push(`- ${item}`));
+      }
+
+      if (state.contextNote.trim()) {
+        output += `\n\n## 补充背景\n${state.contextNote.trim()}`;
+      }
+
+      if (extras.length) {
+        output += `\n\n## 作答偏好\n${extras.join("\n")}`;
+      }
+
+      return output;
+    }
+
+    function showToast(text) {
+      els.toast.textContent = text;
+      els.toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 1600);
+    }
+
+    function renderCategories() {
+      const categories = ["全部", ...new Set(templates.map(t => t.group))];
+      els.categoryChips.innerHTML = categories.map(category => `
+        <button class="chip ${state.category === category ? "active" : ""}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>
+      `).join("");
+
+      els.categoryChips.querySelectorAll("[data-category]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.category = btn.dataset.category;
+          persistState();
+          renderAll();
+        });
+      });
+    }
+
+    function renderLibrary() {
+      const filtered = templates.filter(template => {
+        const inCategory = state.category === "全部" || template.group === state.category;
+        const haystack = `${template.title} ${template.summary} ${template.group}`.toLowerCase();
+        const query = state.search.trim().toLowerCase();
+        const inSearch = !query || haystack.includes(query);
+        return inCategory && inSearch;
+      });
+
+      els.countLabel.textContent = `${filtered.length}/${templates.length}`;
+      els.templateList.innerHTML = filtered.map(template => {
+        const fav = state.favorites.has(template.id);
+        return `
+          <article class="template-card ${state.selectedId === template.id ? "active" : ""}" data-id="${escapeHtml(template.id)}">
+            <button class="star ${fav ? "active" : ""}" data-fav="${escapeHtml(template.id)}" aria-label="收藏模板">${fav ? "★" : "☆"}</button>
+            <h3>${escapeHtml(template.title)}</h3>
+            <p>${escapeHtml(template.summary)}</p>
+            <div class="template-meta">
+              <span>${escapeHtml(template.group)}</span>
+              <span>${template.fields.length} 个字段</span>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      els.templateList.querySelectorAll("[data-id]").forEach(card => {
+        card.addEventListener("click", event => {
+          if (event.target.closest("[data-fav]")) return;
+          state.selectedId = card.dataset.id;
+          persistState();
+          renderAll();
+        });
+      });
+
+      els.templateList.querySelectorAll("[data-fav]").forEach(btn => {
+        btn.addEventListener("click", event => {
+          event.stopPropagation();
+          const id = btn.dataset.fav;
+          if (state.favorites.has(id)) {
+            state.favorites.delete(id);
+          } else {
+            state.favorites.add(id);
+          }
+          persistState();
+          renderAll();
+        });
+      });
+    }
+
+    function renderFields(template) {
+      const fieldValues = buildFieldValues(template);
+      els.fieldList.innerHTML = template.fields.map(field => {
+        const value = fieldValues[field.key] ?? "";
+        const input = field.type === "textarea"
+          ? `<textarea data-field="${escapeHtml(field.key)}" placeholder="${escapeHtml(field.placeholder || "")}">${escapeHtml(value)}</textarea>`
+          : `<input data-field="${escapeHtml(field.key)}" type="text" value="${escapeHtml(value)}" placeholder="${escapeHtml(field.placeholder || "")}" />`;
+
+        return `
+          <div class="field">
+            <label>${escapeHtml(field.label)}</label>
+            ${input}
+            <small>${field.type === "textarea" ? "适合粘贴较长内容。" : "填写这个字段会自动拼进提示词。"}</small>
+          </div>
+        `;
+      }).join("");
+
+      els.fieldList.querySelectorAll("[data-field]").forEach(el => {
+        const field = el.dataset.field;
+        el.addEventListener("input", () => updateStateField(template.id, field, el.value));
+      });
+
+      els.templateTitle.textContent = template.title;
+      els.templateSummary.textContent = template.summary;
+      els.favoriteBtn.textContent = state.favorites.has(template.id) ? "★ 已收藏" : "☆ 收藏";
+      els.favoriteBtn.classList.toggle("primary", state.favorites.has(template.id));
+    }
+
+    function renderModifiers() {
+      els.modifierRow.innerHTML = modifierOptions.map(modifier => `
+        <button class="modifier ${state.modifiers.has(modifier) ? "active" : ""}" data-modifier="${escapeHtml(modifier)}">${escapeHtml(modifier)}</button>
+      `).join("");
+
+      els.modifierRow.querySelectorAll("[data-modifier]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const value = btn.dataset.modifier;
+          if (state.modifiers.has(value)) {
+            state.modifiers.delete(value);
+          } else {
+            state.modifiers.add(value);
+          }
+          persistState();
+          renderAll();
+        });
+      });
+    }
+
+    function renderPrompt(template = getSelectedTemplate()) {
+      const prompt = buildPrompt(template);
+      els.promptOutput.value = prompt;
+      els.statusLine.textContent = `已生成 ${template.title} 模板，长度约 ${prompt.length} 个字符。`;
+    }
+
+    function syncControls() {
+      els.toneSelect.value = state.tone;
+      els.lengthSelect.value = state.length;
+      els.formatSelect.value = state.format;
+      els.contextNote.value = state.contextNote;
+    }
+
+    function renderAll() {
+      const template = getSelectedTemplate();
+      syncControls();
+      renderCategories();
+      renderLibrary();
+      renderFields(template);
+      renderModifiers();
+      renderPrompt(template);
+      persistState();
+    }
+
+    async function copyPrompt() {
+      const text = els.promptOutput.value.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("提示词已复制");
+      } catch (err) {
+        els.promptOutput.select();
+        document.execCommand("copy");
+        showToast("提示词已复制");
+      }
+    }
+
+    function resetAll() {
+      const keepFavorites = new Set(state.favorites);
+      state.selectedId = templates[0].id;
+      state.category = "全部";
+      state.search = "";
+      state.fields = {};
+      state.tone = "自然、直接";
+      state.length = "适中";
+      state.format = "清单";
+      state.modifiers = new Set();
+      state.contextNote = "";
+      state.favorites = keepFavorites;
+      persistState();
+      renderAll();
+      els.searchInput.value = "";
+      showToast("已重置到默认状态");
+    }
+
+    loadState();
+    renderAll();
+
+    els.searchInput.value = state.search;
+    els.searchInput.addEventListener("input", () => {
+      state.search = els.searchInput.value;
+      persistState();
+      renderAll();
+    });
+
+    els.toneSelect.addEventListener("change", () => {
+      state.tone = els.toneSelect.value;
+      persistState();
+      renderPrompt();
+    });
+
+    els.lengthSelect.addEventListener("change", () => {
+      state.length = els.lengthSelect.value;
+      persistState();
+      renderPrompt();
+    });
+
+    els.formatSelect.addEventListener("change", () => {
+      state.format = els.formatSelect.value;
+      persistState();
+      renderPrompt();
+    });
+
+    els.contextNote.addEventListener("input", () => {
+      state.contextNote = els.contextNote.value;
+      persistState();
+      renderPrompt();
+    });
+
+    els.copyBtn.addEventListener("click", copyPrompt);
+    els.saveBtn.addEventListener("click", () => {
+      persistState();
+      showToast("已保存到本地");
+    });
+    els.resetBtn.addEventListener("click", resetAll);
+    els.favoriteBtn.addEventListener("click", () => {
+      const template = getSelectedTemplate();
+      if (state.favorites.has(template.id)) {
+        state.favorites.delete(template.id);
+        showToast("已取消收藏");
+      } else {
+        state.favorites.add(template.id);
+        showToast("已加入收藏");
+      }
+      persistState();
+      renderLibrary();
+      renderFields(template);
+    });
+  </script>
+</body>
+</html>
