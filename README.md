@@ -92,6 +92,8 @@ For everyday conversations with AI, start with this lighter prompt pack:
 If you want a ready-to-use local web page, open:
 
 - [Prompt Workbench](PromptWorkbench.html)
+- [Usage Guide](操作手册.md)
+- [Explanation Guide](解释手册.md)
 
 ### Method 4: Claude Code Skill (Recommended)
 

@@ -87,6 +87,8 @@
 如果你想直接打开网页来用，可以看这个本地工作台：
 
 - [Prompt Workbench](PromptWorkbench.html)
+- [操作手册](操作手册.md)
+- [解释手册](解释手册.md)
 
 ### 方法四：Claude Code Skill（推荐）
 
